@@ -9,6 +9,6 @@ chromadb==1.5.9
 pypdf==6.11.0
 tqdm==4.67.3
 openai==2.37.0
-faiss-cpu==1.14.3
-jupyterlab==4.5.7
+#faiss-cpu==1.14.3
+#jupyterlab==4.5.7
 flask==3.1.3
