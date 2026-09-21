@@ -1,15 +1,15 @@
 /* style.css - Sala de Operacoes (orquestrador de agentes de IA) */
 
 :root {
-    --fundo: #0d1421;
-    --card: #16203a;
-    --card-2: #1c2a4a;
-    --borda: #2b3d63;
-    --texto: #e6ecf6;
-    --texto-2: #9fb2d1;
-    --acento: #38bdf8;
-    --verde: #34d399;
-    --vermelho: #ff6b6b;
+    --fundo: #0a0a0a;
+    --card: #161616;
+    --card-2: #1f1f1f;
+    --borda: #2e2e2e;
+    --texto: #f0f0f0;
+    --texto-2: #9c9c9c;
+    --acento: #b5b5b5;
+    --verde: #8a8a8a;
+    --vermelho: #c53b3b;
 }
 
 * {
@@ -19,14 +19,19 @@
 body {
     margin: 0;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(160deg, var(--fundo) 0%, #101a2f 100%);
+    background: linear-gradient(160deg, var(--fundo) 0%, #141414 100%);
     color: var(--texto);
     min-height: 100vh;
 }
 
+.layout-principal {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+}
+
 .topo {
-    padding: 28px 24px 16px;
-    text-align: center;
+    padding: 24px 24px 16px;
     border-bottom: 1px solid var(--borda);
 }
 
@@ -45,9 +50,9 @@ body {
 }
 
 main {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 20px 16px 40px;
+    width: 100%;
+    min-width: 0;
+    padding: 20px 20px 40px;
     display: grid;
     gap: 18px;
 }
@@ -118,7 +123,7 @@ button {
     background: var(--acento);
     border: none;
     border-radius: 6px;
-    color: #062033;
+    color: #0a0a0a;
     font-weight: 700;
     padding: 10px 16px;
     cursor: pointer;
@@ -174,7 +179,7 @@ fieldset.equipe .check {
 }
 
 .resultado {
-    background: #0a0f1c;
+    background: #0d0d0d;
     border: 1px solid var(--borda);
     border-radius: 6px;
     padding: 12px;
@@ -231,11 +236,16 @@ fieldset.equipe .check {
 
 .abas {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-direction: column;
     gap: 8px;
-    max-width: 980px;
-    margin: 14px auto 0;
-    padding: 8px 16px;
+    margin: 0;
+    padding: 16px;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    border-right: 1px solid var(--borda);
+    min-height: calc(100vh - 96px);
 }
 
 .abas button {
@@ -244,13 +254,15 @@ fieldset.equipe .check {
     color: var(--texto-2);
     font-weight: 600;
     font-size: 0.83rem;
-    padding: 8px 14px;
+    padding: 10px 14px;
+    width: 100%;
+    text-align: left;
 }
 
 .abas button.aba-ativa {
     background: var(--acento);
     border-color: var(--acento);
-    color: #062033;
+    color: #0a0a0a;
 }
 
 .painel[hidden],
@@ -309,7 +321,7 @@ fieldset.equipe .check {
 }
 
 .modal::backdrop {
-    background: rgba(4, 9, 20, 0.7);
+    background: rgba(0, 0, 0, 0.72);
     backdrop-filter: blur(2px);
 }
 
@@ -388,7 +400,7 @@ fieldset.equipe .check {
 }
 
 .item-paleta.usuario .icone-cor { background: var(--verde); }
-.item-paleta.saida .icone-cor { background: #fbbf24; }
+.item-paleta.saida .icone-cor { background: #d6d6d6; }
 
 .item-paleta .btn-paleta {
     margin-left: auto;
@@ -403,8 +415,8 @@ fieldset.equipe .check {
 
 .area-orquestracao {
     position: relative;
-    min-height: 420px;
-    background: #0a0f1c;
+    min-height: calc(100vh - 320px);
+    background: #0d0d0d;
     border: 2px dashed var(--borda);
     border-radius: 8px;
     overflow: hidden;
@@ -457,7 +469,7 @@ fieldset.equipe .check {
 }
 
 .no-orq.saida {
-    border-color: #fbbf24;
+    border-color: #d6d6d6;
 }
 
 .no-orq .rotulo {
@@ -583,7 +595,7 @@ fieldset.equipe .check {
 }
 
 .markdown-conteudo pre.bloco-codigo {
-    background: #0a0f1c;
+    background: #0d0d0d;
     border: 1px solid var(--borda);
     border-left: 3px solid var(--acento);
     border-radius: 6px;
@@ -603,7 +615,7 @@ fieldset.equipe .check {
 /* ---------- painel "Log do servidor" ---------- */
 
 .log-panel {
-    background: #0a0f1c;
+    background: #0d0d0d;
     border: 1px solid var(--borda);
     border-radius: 6px;
     padding: 10px 12px;
@@ -618,7 +630,7 @@ fieldset.equipe .check {
 
 .log-entry {
     padding: 2px 0;
-    border-bottom: 1px dotted rgba(43, 61, 99, 0.35);
+    border-bottom: 1px dotted rgba(46, 46, 46, 0.55);
     white-space: pre-wrap;
     word-break: break-word;
 }
@@ -720,22 +732,36 @@ fieldset.equipe .check {
 
 footer {
     text-align: center;
-    padding: 18px;
+    padding: 12px;
     color: var(--texto-2);
     font-size: 0.8rem;
     border-top: 1px solid var(--borda);
 }
 
 @media (max-width: 760px) {
+    .layout-principal {
+        grid-template-columns: 1fr;
+    }
+
+    .abas {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-right: none;
+        border-bottom: 1px solid var(--borda);
+        min-height: 0;
+    }
+
+    .abas button {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
     .orquestracao-layout {
         grid-template-columns: 1fr;
     }
 
     .grade {
         grid-template-columns: 1fr;
-    }
-
-    .abas button {
-        flex: 1 1 auto;
     }
 }

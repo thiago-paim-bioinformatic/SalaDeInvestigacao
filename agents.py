@@ -43,6 +43,8 @@ from langchain_chroma import Chroma
 #monitoramento de progresso de embedding
 from tqdm import tqdm
 
+import re
+
 
 class CreateChunks():
     def __init__(self):
@@ -193,13 +195,19 @@ class Agent():
         Cria a instância do LLM e a cadeia de processamento de documentos separadamente,
         permitindo interceptar os documentos para o rerank.
         """
-        llm = ChatOpenAI (
-            model=model_llm,
-            base_url=base_url,
-            openai_api_key=openai_api_key,
-            temperature=0 # Recomendado manter 0 para respostas baseadas em contexto
-        )
-
+        if re.match(pattern=r"[0-9]{3}\.[0-9]\.[0-9]\.[0-9]", string=str(base_url)):
+            llm = ChatOpenAI (
+                model=model_llm,
+                base_url=base_url,
+                openai_api_key=openai_api_key,
+                temperature=0 # Recomendado manter 0 para respostas baseadas em contexto
+            )
+        else:
+            llm = ChatOpenAI (
+                model=model_llm,
+                openai_api_key=openai_api_key,
+                temperature=0 # Recomendado manter 0 para respostas baseadas em contexto
+            )
         
         system_prompt=f"""
         Seu nome é {self.name} e {self.persona}.
@@ -251,8 +259,8 @@ class Agent():
             
             if retriever_type == "mmr":
                 search_kwargs.update({ #atualiza o dicionário 'search_kwargs'
-                        "k":5,
-                        "fetch_k": 20
+                        "k":10,
+                        "fetch_k": 30
                     })
                 retriever = self.knowledge.as_retriever(
                     search_type="mmr",
@@ -271,7 +279,7 @@ class Agent():
                 self.retriever=retriever
             
             elif retriever_type == "similarity":
-                search_kwargs.update({"k":3})
+                search_kwargs.update({"k":10})
                 retriever = self.knowledge.as_retriever(
                     search_type="similarity",
                     search_kwargs=search_kwargs
@@ -330,8 +338,8 @@ class Agent():
             #retorna apenas os documentos
             docs_reranked=[doc for _,doc in documentos_ordenados]
             
-            # Seleciona apenas os 3 mais relevantes após o rerank
-            top_docs = docs_reranked[:3] 
+            # Seleciona apenas os 10 mais relevantes após o rerank
+            top_docs = docs_reranked[:10] 
 
         ####### IMPORTANTE #######
         # Criar chamada de acesso a memória do agente com o mesmo `user_prompt`

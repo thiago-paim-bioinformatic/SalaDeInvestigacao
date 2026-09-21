@@ -10,8 +10,10 @@
 
 <header class="topo">
     <h1>Sala de Operações</h1>
-    <p>Orquestração de agentes de IA (RAG) - investigação patrimonial</p>
+    <p>Orquestração de agentes de IA com uso de RAG (Retrieval Augmented Generation) - Ambiente de Investigação</p>
 </header>
+
+<div class="layout-principal">
 
 <nav class="abas" id="abas-principais">
     <button class="aba-ativa" data-alvo="aba-status">Status do servidor</button>
@@ -88,7 +90,7 @@
     <section class="card painel" id="aba-agentes" data-aba="aba-agentes" hidden>
         <h2>Cadastro de agentes</h2>
         <p class="dica">
-            Configure nome, persona, habilidades e tarefa por botões (pop-ups) e,
+            Configure nome (sem caracteres especiais e sem espaços), persona, habilidades e tarefa por botões (pop-ups) e,
             em seguida, crie o agente. A memória persistente fica em
             ./agents_memory/&lt;nome_do_agente&gt;.
         </p>
@@ -232,6 +234,8 @@
 
 </main>
 
+</div>
+
 <!-- Dialog - Configurar Nome do Agente -->
 <dialog id="dialog-nome" class="modal">
     <h3>Configurar Nome do Agente</h3>
@@ -369,7 +373,9 @@
 </dialog>
 
 <footer>
-    <p>Front-end Flask - backend usa agents.py e llm.py - requer LM Studio em execução.</p>
+    <p>Front-end e Back-end desenvolvido em Flask: Módulos principais agents.py e llm.py</p>
+    <p>Para execução da LLM, use servidor local via LM Studio ou chave de API da OpenAI</p>
+    <p>Desenvolvido por Thiago Paim (PCRS). Versão: 1.0.0</p> 
 </footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>

@@ -1,2 +1,8 @@
 .venv/
 .env
+*.ps1
+*.pyc
+agents_memory/
+chroma_base_de_dados/
+__pycache__/
+*.json

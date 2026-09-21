@@ -11,7 +11,7 @@ Utiliza os módulos do projeto:
 
 Requisitos de execução:
     - Servidor LM Studio ativo em http://127.0.0.1:1234/v1 (api_key "lm-studio"),
-      com os modelos text-embedding-nomic-embed-text-v1.5 e google/gemma-3-1b carregados.
+      ou OpenAI API.
     - Dependência extra: flask (pip install flask)
 '''
 
@@ -27,6 +27,7 @@ import shutil
 import tempfile
 import threading
 import time
+import re
 
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 
@@ -39,13 +40,8 @@ from dotenv import load_dotenv
 import agents
 import llm
 
-# Constantes padrão do projeto (idênticas aos notebooks)]
-"""
-MODEL_EMBEDDING = "text-embedding-nomic-embed-text-v1.5"
-MODEL_LLM = "google/gemma-3-1b"
-BASE_URL_SERVER = "http://127.0.0.1:1234/v1"
-API_KEY_SERVER = "lm-studio"
-"""
+
+#Carrega variáveis de ambiente
 load_dotenv()
 
 MODEL_EMBEDDING = os.getenv("MODEL_EMBEDDING")
@@ -63,15 +59,21 @@ AGENTES = {}
 
 
 def criar_embeddings(model=MODEL_EMBEDDING, base_url=BASE_URL_SERVER, api_key=API_KEY_SERVER):
-    '''Cria a instância de embeddings via API compatível do LM Studio (fluxo do RAG.ipynb).'''
-    return OpenAIEmbeddings(
-        model=model,
-        base_url=base_url,
-        api_key=api_key,
-        chunk_size=1,
-        check_embedding_ctx_length=False,
-    )
-
+    '''Cria a instância de embeddings via API compatível do LM Studio ou OpenAI.'''
+    if re.match(pattern=r"[0-9]{3}\.[0-9]\.[0-9]\.[0-9]", string=str(BASE_URL_SERVER)):
+        return OpenAIEmbeddings(
+            model=model,
+            base_url=base_url,
+            api_key=api_key,
+            chunk_size=1,
+            check_embedding_ctx_length=False,
+        )
+    else:
+        return OpenAIEmbeddings(
+            api_key=api_key,
+            chunk_size=1,
+            check_embedding_ctx_length=False,
+        )
 
 def serializar_documento(doc):
     '''Converte um Document (langchain) em dict serializável para a API.'''
@@ -84,14 +86,24 @@ def serializar_documento(doc):
 
 
 def verificar_servidor(base_url=BASE_URL_SERVER, api_key=API_KEY_SERVER):
-    '''Consulta o endpoint /v1/models do LM Studio para verificar disponibilidade.'''
-    try:
-        from openai import OpenAI
-        cliente = OpenAI(base_url=base_url, api_key=api_key, timeout=5)
-        modelos = [m.id for m in cliente.models.list()]
-        return {"ativo": True, "modelos": modelos}
-    except Exception as exc:  # servidor fora do ar ou modelo não carregado
-        return {"ativo": False, "erro": str(exc)}
+    '''Consulta o endpoint /v1/models do LM Studio ou OpenAI para verificar disponibilidade.'''
+    
+    if re.match(pattern=r"[0-9]{3}\.[0-9]\.[0-9]\.[0-9]", string=str(BASE_URL_SERVER)):
+        try:
+            from openai import OpenAI
+            cliente = OpenAI(base_url=base_url, api_key=api_key, timeout=5)
+            modelos = [m.id for m in cliente.models.list()]
+            return {"ativo": True, "modelos": modelos}
+        except Exception as exc:  # servidor fora do ar ou modelo não carregado
+            return {"ativo": False, "erro": str(exc)}
+    else:
+        try:
+            from openai import OpenAI
+            cliente = OpenAI(api_key=api_key, timeout=5)
+            modelos = [m.id for m in cliente.models.list()]
+            return {"ativo": True, "modelos": modelos}
+        except Exception as exc:  # servidor fora do ar ou modelo não carregado
+            return {"ativo": False, "erro": str(exc)}
 
 
 # ---------------------------------------------------------------------------
@@ -118,10 +130,11 @@ def adicionar_log(nivel, mensagem):
     return entrada
 
 
-class _BufferLogHandler(logging.Handler):
-    '''Envia os logs do Flask/Werkzeug para o buffer do painel "Log do servidor".'''
+class _BufferLogHandler(logging.StreamHandler):
+    '''Envia os logs do Flask/Werkzeug para o console (stderr) e para o buffer do painel "Log do servidor".'''
 
     def emit(self, record):
+        super().emit(record)
         try:
             mensagem = self.format(record)
         except Exception:
@@ -821,7 +834,20 @@ def orquestrar():
     })
 
 
+def _env_bool(nome, padrao):
+    valor = os.getenv(nome)
+    if valor is None:
+        return padrao
+    return valor.strip().lower() in ("1", "true", "sim", "yes")
+
+
 if __name__ == "__main__":
     carregar_bases_persistidas()
     carregar_agentes_persistidos()
-    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
+    app.run(
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "5000")),
+        debug=_env_bool("FLASK_DEBUG", True),
+        use_reloader=_env_bool("FLASK_RELOADER", False),
+        threaded=True,
+    )
