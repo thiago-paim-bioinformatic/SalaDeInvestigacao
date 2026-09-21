@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sala de Operações - Orquestrador de Agentes de IA</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="topo">
+    <h1>Sala de Operações</h1>
+    <p>Orquestração de agentes de IA (RAG) - investigação patrimonial</p>
+</header>
+
+<nav class="abas" id="abas-principais">
+    <button class="aba-ativa" data-alvo="aba-status">Status do servidor</button>
+    <button data-alvo="aba-base">Base de conhecimento</button>
+    <button data-alvo="aba-agentes">Cadastro de agentes</button>
+    <button data-alvo="aba-interagir">Interação com o agente</button>
+    <button data-alvo="aba-orquestracao">Orquestração (equipes de agentes)</button>
+    <button data-alvo="aba-memoria">Memória do agente</button>
+</nav>
+
+<main>
+
+    <!-- Status do servidor -->
+    <section class="card painel" id="aba-status" data-aba="aba-status">
+        <h2>Status do servidor</h2>
+        <pre id="status-servidor">Carregando...</pre>
+    </section>
+
+    <!-- Base de conhecimento -->
+    <section class="card painel" id="aba-base" data-aba="aba-base" hidden>
+        <h2>Base de conhecimento (indexação de PDF)</h2>
+        <p class="dica">
+            Fluxo do RAG.ipynb: leitura do PDF e divisão em chunks (llm.py) e
+            criação do vectorstore Chroma com embeddings via LM Studio (agents.py).
+        </p>
+        <form id="form-base" class="grade">
+            <div class="grade-acoes">
+                <button type="button" id="btn-selecionar-arquivos">Carregar base de conhecimento</button>
+            </div>
+            <p class="dica" id="info-arquivos-selecionados">Nenhum arquivo/pasta selecionado.</p>
+            <input type="file" id="arquivo-pdf-multiplo" accept=".pdf,application/pdf" multiple hidden>
+            <input type="file" id="arquivo-pdf-pasta" webkitdirectory multiple hidden>
+            <label>
+                Nome da base
+                <input type="text" id="nome-base" placeholder="Ex.: manual_investigacao">
+            </label>
+            <label>
+                Adicionar a base existente (opcional)
+                <select id="selecao-base-existente">
+                    <option value="">Criar nova base</option>
+                </select>
+            </label>
+            <label>
+                Categoria (gênero)
+                <input type="text" id="genero" placeholder="Ex.: Inquérito Policial">
+            </label>
+            <label>
+                Categoria (espécie)
+                <input type="text" id="especie" placeholder="Ex.: IP 0001-2025-700000">
+            </label>
+            <label>
+                Chunk size
+                <input type="number" id="chunk-size" value="500" min="100" step="50">
+            </label>
+            <label>
+                Chunk overlap
+                <input type="number" id="chunk-overlap" value="100" min="0" step="50">
+            </label>
+            <div class="grade-acoes">
+                <button type="button" id="btn-base">Criar base de conhecimento</button>
+            </div>
+        </form>
+        <pre id="resultado-base" class="resultado"></pre>
+        <div id="bloco-progresso-base" class="progresso" hidden>
+            <label for="progresso-base">Indexando... pode levar alguns minutos (embeddings)</label>
+            <progress id="progresso-base" max="100" value="0"></progress>
+            <span id="texto-progresso-base" class="progresso-info"></span>
+        </div>
+        <h3>Bases carregadas</h3>
+        <pre id="bases-lista" class="resultado">Nenhuma base criada ainda.</pre>
+    </section>
+
+    <!-- Cadastro de agentes -->
+    <section class="card painel" id="aba-agentes" data-aba="aba-agentes" hidden>
+        <h2>Cadastro de agentes</h2>
+        <p class="dica">
+            Configure nome, persona, habilidades e tarefa por botões (pop-ups) e,
+            em seguida, crie o agente. A memória persistente fica em
+            ./agents_memory/&lt;nome_do_agente&gt;.
+        </p>
+        <form id="form-agente" class="grade">
+            <div class="grade-acoes grade-cadastro">
+                <button type="button" id="btn-config-nome">Configurar Nome do Agente</button>
+                <button type="button" id="btn-config-persona">Configurar Persona</button>
+                <button type="button" id="btn-config-habilidades">Configurar Habilidades</button>
+                <button type="button" id="btn-config-tarefa">Configurar Tarefas</button>
+            </div>
+            <label>
+                Base de conhecimento
+                <select id="selecao-conhecimento"></select>
+            </label>
+            <label>
+                Tipo de retriever
+                <select id="retriever-agente-config">
+                    <option value="mmr">mmr</option>
+                    <option value="similarity">similarity</option>
+                    <option value="similarity_score_threshold">similarity_score_threshold</option>
+                    <option value="sem_base">Não buscar na base de conhecimento</option>
+                </select>
+            </label>
+            <div class="grade-acoes">
+                <button type="button" id="btn-agente">Criar agente</button>
+                <button type="button" class="btn-secundario" id="btn-deletar-agente">Deletar agente</button>
+            </div>
+        </form>
+        <h3>Configuração do novo agente</h3>
+        <pre id="config-agente-resumo" class="resultado">Nenhum valor configurado ainda.</pre>
+        <pre id="resultado-agente" class="resultado"></pre>
+        <h3>Agentes registrados</h3>
+        <div id="agentes-lista" class="resultado">Nenhum agente criado ainda.</div>
+    </section>
+
+    <!-- Interação com o agente -->
+    <section class="card painel" id="aba-interagir" data-aba="aba-interagir" hidden>
+        <h2>Interação com o agente</h2>
+        <form id="form-perguntar" class="grade">
+            <label>
+                Agente
+                <select id="selecao-agente"></select>
+            </label>
+            <label>
+                Tipo de retriever
+                <select id="retriever-agente">
+                    <option value="mmr">mmr</option>
+                    <option value="similarity">similarity</option>
+                    <option value="similarity_score_threshold">similarity_score_threshold</option>
+                    <option value="sem_base">Não buscar na base de conhecimento</option>
+                </select>
+            </label>
+            <div class="checagens">
+                <label class="check"><input type="checkbox" id="usar-memoria" checked> usar memória do agente</label>
+                <label class="check"><input type="checkbox" id="salvar-memoria"> salvar resposta na memória</label>
+            </div>
+            <div class="grade-acoes grade-cadastro">
+                <button type="button" id="btn-pergunta-popup">Pergunte ao Agente</button>
+                <button type="button" id="btn-regex-popup">REGEX</button>
+            </div>
+        </form>
+        <pre id="resultado-pergunta" class="resultado"></pre>
+    </section>
+
+    <!-- Orquestração -->
+    <section class="card painel" id="aba-orquestracao" data-aba="aba-orquestracao" hidden>
+        <h2>Orquestração (equipes de agentes)</h2>
+        <p class="dica">
+            Arraste ícones da guia "Elementos de Orquestração" para o "Ambiente de
+            Orquestração", conecte as portas <em>input</em>/<em>output</em> e execute.
+        </p>
+        <div class="sub-abas">
+            <button class="sub-ativa" data-sub="sub-ambiente">Ambiente de Orquestração</button>
+            <button data-sub="sub-entradas-saidas">Entradas e Saídas</button>
+        </div>
+
+        <div id="sub-ambiente" class="sub-painel">
+            <div class="orquestracao-layout">
+                <aside class="paleta">
+                    <h3>Elementos de Orquestração</h3>
+                    <div id="paleta-itens" class="paleta-itens">
+                        <span class="dica-area">Carregando elementos...</span>
+                    </div>
+                </aside>
+                <div class="ambiente">
+                    <h3>Ambiente de Orquestração</h3>
+                    <div class="area-orquestracao" id="area-orquestracao">
+                        <div id="canvas-orquestracao">
+                            <svg id="cv-arestas"></svg>
+                        </div>
+                        <span class="dica-area">Arraste os ícones da esquerda para cá. Conecte as portas clicando em <em>output</em> e depois em <em>input</em>.</span>
+                    </div>
+                    <div class="grade-acoes acoes-orq">
+                        <button type="button" id="btn-executar-orq">Executar Orquestração</button>
+                        <button type="button" class="btn-secundario" id="btn-limpar-orq">Limpar ambiente</button>
+                        <button type="button" class="btn-secundario" id="btn-gravar-orq">Gravar orquestração</button>
+                        <button type="button" class="btn-secundario" id="btn-orq-salvas">Orquestrações salvas</button>
+                        <button type="button" class="btn-zoom" id="btn-zoom-menor" title="Diminuir zoom">−</button>
+                        <button type="button" class="btn-zoom" id="btn-zoom-maior" title="Aumentar zoom">+</button>
+                        <button type="button" class="btn-zoom" id="btn-zoom-reset" title="Restabelecer zoom">100%</button>
+                    </div>
+                </div>
+            </div>
+            <h3>Resultado da orquestração</h3>
+            <div id="resultado-orquestracao" class="resultado markdown-conteudo">Nenhuma orquestração executada ainda.</div>
+            <div class="grade-acoes acoes-orq">
+                <button type="button" id="btn-copiar-orq">Copiar texto gerado</button>
+            </div>
+            <h3>Log do servidor</h3>
+            <div id="log-servidor" class="log-panel">Aguardando logs do servidor...</div>
+        </div>
+
+        <div id="sub-entradas-saidas" class="sub-painel" hidden>
+            <h3>Entradas e saídas estruturadas</h3>
+            <div id="resultado-entradas-saidas" class="resultado markdown-conteudo">Nenhuma execução ainda. Execute a orquestração na sub-aba "Ambiente de Orquestração".</div>
+        </div>
+    </section>
+
+    <!-- Memória -->
+    <section class="card painel" id="aba-memoria" data-aba="aba-memoria" hidden>
+        <h2>Memória do agente</h2>
+        <p class="dica">
+            Consulta por similaridade (RAG) na memória persistente do agente em
+            ./agents_memory/&lt;nome_do_agente&gt;.
+        </p>
+        <form id="form-memoria" class="grade">
+            <label>
+                Agente
+                <select id="selecao-memoria"></select>
+            </label>
+            <label>
+                Pergunta para a memória
+                <textarea id="pergunta-memoria" rows="2" placeholder="Busque na memória informações sobre..."></textarea>
+            </label>
+            <div class="grade-acoes">
+                <button type="button" id="btn-memoria">Acessar memória</button>
+            </div>
+        </form>
+        <pre id="resultado-memoria" class="resultado"></pre>
+    </section>
+
+</main>
+
+<!-- Dialog - Configurar Nome do Agente -->
+<dialog id="dialog-nome" class="modal">
+    <h3>Configurar Nome do Agente</h3>
+    <input type="text" id="campo-nome" placeholder="Ex.: analista_patrimonial">
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-nome">Cancelar</button>
+        <button type="button" data-confirmar="dialog-nome">Confirmar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Configurar Persona -->
+<dialog id="dialog-persona" class="modal">
+    <h3>Configurar Persona</h3>
+    <textarea id="campo-persona" rows="3" placeholder="Ex.: você é um investigador experiente"></textarea>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-persona">Cancelar</button>
+        <button type="button" data-confirmar="dialog-persona">Confirmar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Configurar Habilidades -->
+<dialog id="dialog-habilidades" class="modal">
+    <h3>Configurar Habilidades</h3>
+    <textarea id="campo-habilidades" rows="3" placeholder="Ex.: análise de dados, raciocínio jurídico"></textarea>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-habilidades">Cancelar</button>
+        <button type="button" data-confirmar="dialog-habilidades">Confirmar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Configurar Tarefas -->
+<dialog id="dialog-tarefa" class="modal">
+    <h3>Configurar Tarefas</h3>
+    <textarea id="campo-tarefa" rows="3" placeholder="Ex.: responder perguntas com base na base de dados"></textarea>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-tarefa">Cancelar</button>
+        <button type="button" data-confirmar="dialog-tarefa">Confirmar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Pergunta ao Agente -->
+<dialog id="dialog-pergunta" class="modal">
+    <h3>Pergunte ao Agente</h3>
+    <textarea id="pergunta-agente" rows="4" placeholder="Digite a pergunta..."></textarea>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-pergunta">Cancelar</button>
+        <button type="button" id="btn-perguntar">Perguntar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - REGEX -->
+<dialog id="dialog-regex" class="modal">
+    <h3>REGEX (opcional)</h3>
+    <p class="dica">Busca por padrão no trecho recuperado. Vazio para desativar.</p>
+    <input type="text" id="regex-agente" placeholder="Ex.: 308161728">
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-regex">Cancelar</button>
+        <button type="button" data-confirmar="dialog-regex">Salvar regex</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Interação inicial (Usuário) -->
+<dialog id="dialog-interacao" class="modal">
+    <h3>Interação inicial (Usuário)</h3>
+    <p class="dica">Digite o prompt inicial que alimentará os agentes conectados.</p>
+    <textarea id="prompt-inicial-orq" rows="4" placeholder="Digite o prompt inicial..."></textarea>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-interacao">Cancelar</button>
+        <button type="button" data-confirmar="dialog-interacao">Definir prompt</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Origem dos arquivos (arquivos individuais ou pasta inteira) -->
+<dialog id="dialog-origem-arquivos" class="modal">
+    <h3>Carregar base de conhecimento</h3>
+    <p class="dica">Escolha arquivos PDF individuais ou uma pasta inteira (todos os PDFs da pasta serão indexados).</p>
+    <div class="grade-cadastro">
+        <button type="button" id="btn-escolher-arquivos">Selecionar arquivos</button>
+        <button type="button" id="btn-escolher-pasta">Selecionar pasta</button>
+    </div>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-origem-arquivos">Cancelar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Lista de agentes para excluir -->
+<dialog id="dialog-listar-deletar" class="modal">
+    <h3>Deletar agente</h3>
+    <p class="dica">Selecione o agente a ser excluído (sua memória também será removida):</p>
+    <div id="lista-deletar-agentes" class="lista-botoes"></div>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-listar-deletar">Cancelar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Confirmação de exclusão -->
+<dialog id="dialog-confirmar-deletar" class="modal">
+    <h3>Deletar agente</h3>
+    <p id="texto-confirmar-deletar" class="dica">Confirma a exclusão?</p>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-confirmar-deletar">Cancelar</button>
+        <button type="button" id="btn-sim-deletar">Sim</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Visualizar estrutura JSON de um agente -->
+<dialog id="dialog-visualizar-agente" class="modal">
+    <h3>Estrutura do agente (JSON)</h3>
+    <pre id="json-visualizar-agente" class="resultado"></pre>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-visualizar-agente">Fechar</button>
+        <button type="button" id="btn-copiar-agente">Copiar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Gravar orquestração -->
+<dialog id="dialog-gravar-orq" class="modal">
+    <h3>Gravar orquestração</h3>
+    <p class="dica">Dê um nome para salvar a estrutura do ambiente (nós, arestas e prompt inicial).</p>
+    <input type="text" id="nome-orq-gravar" placeholder="Ex.: equipe_patrimonial_ip0001">
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-gravar-orq">Cancelar</button>
+        <button type="button" id="btn-confirmar-gravar-orq">Salvar</button>
+    </div>
+</dialog>
+
+<!-- Dialog - Lista de orquestrações salvas -->
+<dialog id="dialog-orq-salvas" class="modal">
+    <h3>Orquestrações salvas</h3>
+    <p class="dica">Selecione uma orquestração para carregar no ambiente.</p>
+    <div id="lista-orq-salvas" class="lista-botoes"></div>
+    <div class="modal-acoes">
+        <button type="button" class="btn-secundario" data-fechar="dialog-orq-salvas">Cancelar</button>
+    </div>
+</dialog>
+
+<footer>
+    <p>Front-end Flask - backend usa agents.py e llm.py - requer LM Studio em execução.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
